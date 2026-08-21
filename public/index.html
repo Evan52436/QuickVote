@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Quick Vote</title>
+<style>
+  :root { --blue: #1e40ff; --red: #ff2e2e; --ink: #05070f; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--ink);
+    user-select: none;
+  }
+  #vote-view { position: fixed; inset: 0; display: flex; flex-direction: row; }
+  @media (max-width: 700px) { #vote-view { flex-direction: column; } }
+  .half {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+    transition: filter 0.08s ease, transform 0.08s ease;
+  }
+  .half:active { filter: brightness(1.25); transform: scale(0.98); }
+  .half.yes { background: var(--blue); }
+  .half.no { background: var(--red); }
+  .half .label {
+    font-size: 18vw; font-weight: 900; letter-spacing: -0.03em;
+    color: white; line-height: 1; pointer-events: none;
+  }
+  @media (min-width: 701px) { .half .label { font-size: 9vw; } }
+  #toast {
+    position: fixed; top: 24px; left: 50%;
+    transform: translateX(-50%) translateY(-140%);
+    background: var(--ink); color: white; padding: 12px 22px;
+    border-radius: 999px; font-size: 15px; font-weight: 700;
+    letter-spacing: 0.02em; z-index: 50;
+    transition: transform 0.25s cubic-bezier(.2,.9,.3,1.3);
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <div id="vote-view">
+    <div class="half yes" id="btn-yes"><div class="label">YES</div></div>
+    <div class="half no" id="btn-no"><div class="label">NO</div></div>
+    <div id="toast">Vote counted</div>
+  </div>
+
+<script>
+  const toast = document.getElementById('toast');
+  let busy = false;
+
+  async function castVote(choice) {
+    if (busy) return;
+    busy = true;
+    try {
+      await fetch('/api/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice }),
+      });
+      toast.textContent = choice === 'yes' ? 'Voted YES' : 'Voted NO';
+    } catch (e) {
+      toast.textContent = 'Could not reach server';
+    }
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 900);
+    busy = false;
+  }
+
+  document.getElementById('btn-yes').addEventListener('click', () => castVote('yes'));
+  document.getElementById('btn-no').addEventListener('click', () => castVote('no'));
+</script>
+</body>
+</html>
