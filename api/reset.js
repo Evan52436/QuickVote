@@ -7,7 +7,11 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
     const redis = getRedis();
-    await Promise.all([redis.set('votes:yes', 0), redis.set('votes:no', 0)]);
+    await Promise.all([
+      redis.set('votes:yes', 0),
+      redis.set('votes:no', 0),
+      redis.del('votes:log'),
+    ]);
     return res.status(200).json({ yes: 0, no: 0 });
   } catch (err) {
     console.error(err);

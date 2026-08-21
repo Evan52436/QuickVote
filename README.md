@@ -42,11 +42,26 @@ the second kind — that's what this project is set up for, using `ioredis`.
   "REDIS_URL is not set" message means the database still isn't connected to this project/env.
 - After connecting/reconnecting storage, always **redeploy**.
 
+## Names
+
+Voters are asked for their name once (a popup on `index.html`), stored in that browser's
+`localStorage`, and sent along with every vote from that device. The admin panel shows the
+6 most recent voters under each side as chips.
+
+- Names are capped at 40 characters and rendered with `textContent`, never `innerHTML`, so a
+  typed name can't inject markup or scripts into the projected screen.
+- There's no profanity filter or moderation — since this is projected live with no accounts,
+  anyone can type anything as their "name." `Clear votes` wipes the whole name log along with
+  the tally, but there's no way to remove a single bad entry without clearing everyone's.
+- The last 200 vote+name entries are kept in Redis (`votes:log`); older ones roll off
+  automatically so the list doesn't grow unbounded.
+
 ## Notes
 
 - No accounts, no de-duplication — anyone can vote as many times as they like, by design.
-- Votes are stored under the keys `votes:yes` and `votes:no`.
+- Votes are stored under the keys `votes:yes` and `votes:no`; entries in `votes:log`.
 - The admin panel polls every 2 seconds — good enough for a live room, no websockets needed.
-- `Clear votes` asks for confirmation before wiping the count, since it resets it for everyone.
+- `Clear votes` asks for confirmation before wiping the count and name log, since it resets it
+  for everyone.
 - The Redis connection is reused across warm serverless invocations rather than reconnecting on
   every request, to stay well under typical connection limits on small Redis plans.

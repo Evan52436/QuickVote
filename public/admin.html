@@ -68,6 +68,39 @@
     letter-spacing: 0.05em;
   }
 
+  /* ---- who voted: recent-name chips ---- */
+  .names-row {
+    position: absolute;
+    bottom: 16%;
+    left: 6%;
+    right: 6%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    max-height: 22%;
+    overflow: hidden;
+  }
+  .name-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(11px, 1.1vw, 15px);
+    font-weight: 600;
+    color: white;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 999px;
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+  .name-chip.newest {
+    animation: chip-in 0.4s ease;
+    background: rgba(255,255,255,0.26);
+  }
+  @keyframes chip-in {
+    from { transform: scale(0.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
   /* ---- the rope: divider that slides with the split ---- */
   #divider {
     position: fixed;
@@ -200,11 +233,13 @@
     <div class="side yes" id="side-yes" style="width:50%">
       <span class="caption">Yes</span>
       <div class="pct"><span id="pct-yes">50</span><span class="unit">%</span></div>
+      <div class="names-row" id="names-yes"></div>
       <span class="count" id="count-yes">0 votes</span>
     </div>
     <div class="side no" id="side-no" style="width:50%">
       <span class="caption">No</span>
       <div class="pct"><span id="pct-no">50</span><span class="unit">%</span></div>
+      <div class="names-row" id="names-no"></div>
       <span class="count" id="count-no">0 votes</span>
     </div>
   </div>
@@ -239,7 +274,21 @@
     return res.json();
   }
 
-  function render(yes, no) {
+  let lastNewestTs = 0;
+
+  function renderNames(containerId, entries) {
+    const container = document.getElementById(containerId);
+    container.textContent = ''; // clear safely, no innerHTML involved
+    entries.slice(0, 6).forEach((entry, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'name-chip';
+      chip.textContent = entry.name; // textContent = never interpreted as HTML
+      if (i === 0 && entry.ts > lastNewestTs) chip.classList.add('newest');
+      container.appendChild(chip);
+    });
+  }
+
+  function render(yes, no, entries) {
     const total = yes + no;
     const yesPct = total ? Math.round((yes / total) * 100) : 50;
     const noPct = total ? 100 - yesPct : 50;
@@ -255,12 +304,18 @@
     document.getElementById('total-n').textContent = total.toLocaleString();
 
     document.getElementById('empty-note').style.display = total === 0 ? 'flex' : 'none';
+
+    const yesEntries = entries.filter((e) => e.choice === 'yes');
+    const noEntries = entries.filter((e) => e.choice === 'no');
+    renderNames('names-yes', yesEntries);
+    renderNames('names-no', noEntries);
+    if (entries[0]) lastNewestTs = entries[0].ts;
   }
 
   async function tick() {
     try {
-      const { yes, no } = await fetchVotes();
-      render(yes || 0, no || 0);
+      const { yes, no, entries } = await fetchVotes();
+      render(yes || 0, no || 0, entries || []);
       document.getElementById('err-banner').style.display = 'none';
     } catch (e) {
       const banner = document.getElementById('err-banner');
@@ -271,7 +326,7 @@
 
   document.getElementById('refresh-btn').addEventListener('click', tick);
   document.getElementById('clear-btn').addEventListener('click', async () => {
-    if (!confirm('Clear all votes back to zero? This cannot be undone.')) return;
+    if (!confirm('Clear all votes and names back to zero? This cannot be undone.')) return;
     await fetch('/api/reset', { method: 'POST' });
     tick();
   });
