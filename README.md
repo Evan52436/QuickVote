@@ -42,6 +42,17 @@ the second kind — that's what this project is set up for, using `ioredis`.
   "REDIS_URL is not set" message means the database still isn't connected to this project/env.
 - After connecting/reconnecting storage, always **redeploy**.
 
+## One vote per page load
+
+After a successful vote, both halves lock (dim the side not chosen, show a small "✓ Your vote"
+on the chosen side) for the rest of that page load — tapping again does nothing. This lock lives
+only in a JavaScript variable, on purpose: **refreshing the page clears it**, so the same person
+can vote again by reloading. This is a soft deterrent against accidental double-taps, not real
+fraud prevention — anyone who wants to vote multiple times still can, just by refreshing (or
+using another tab/device). If you need actual one-vote-per-person enforcement later, that
+requires some form of identity (a device fingerprint, IP-based limiting, or real accounts),
+which is a bigger change than this project currently makes.
+
 ## Names
 
 Voters are asked for their name once (a popup on `index.html`), stored in that browser's

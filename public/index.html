@@ -34,6 +34,22 @@
     color: white; line-height: 1; pointer-events: none;
   }
   @media (min-width: 701px) { .half .label { font-size: 9vw; } }
+
+  #vote-view.locked .half { pointer-events: none; }
+  #vote-view.locked .half.dimmed { filter: brightness(0.35) saturate(0.7); }
+  #vote-view.locked .half.chosen .label { transform: scale(1.05); }
+  .half .check {
+    position: absolute;
+    bottom: 28%;
+    font-size: clamp(14px, 2.2vw, 22px);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+    opacity: 0;
+    transition: opacity 0.3s ease 0.1s;
+  }
+  #vote-view.locked .half.chosen .check { opacity: 1; }
   #toast {
     position: fixed; top: 24px; left: 50%;
     transform: translateX(-50%) translateY(-140%);
@@ -129,8 +145,8 @@
 <body>
 
   <div id="vote-view">
-    <div class="half yes" id="btn-yes"><div class="label">YES</div></div>
-    <div class="half no" id="btn-no"><div class="label">NO</div></div>
+    <div class="half yes" id="btn-yes"><div class="label">YES</div><div class="check">✓ Your vote</div></div>
+    <div class="half no" id="btn-no"><div class="label">NO</div><div class="check">✓ Your vote</div></div>
     <div id="toast">Vote counted</div>
     <div id="voter-badge">Voting as <strong id="voter-name"></strong><a id="change-name">change</a></div>
   </div>
@@ -154,7 +170,9 @@
   const badge = document.getElementById('voter-badge');
   const voterNameEl = document.getElementById('voter-name');
   const changeNameLink = document.getElementById('change-name');
+  const voteView = document.getElementById('vote-view');
   let busy = false;
+  let hasVoted = false; // intentionally NOT persisted — a refresh resets this on purpose
 
   function getSavedName() {
     return (localStorage.getItem(NAME_KEY) || '').trim();
@@ -205,8 +223,17 @@
     showGate();
   }
 
+  function lockVote(choice) {
+    hasVoted = true;
+    voteView.classList.add('locked');
+    document.getElementById('btn-yes').classList.toggle('chosen', choice === 'yes');
+    document.getElementById('btn-yes').classList.toggle('dimmed', choice !== 'yes');
+    document.getElementById('btn-no').classList.toggle('chosen', choice === 'no');
+    document.getElementById('btn-no').classList.toggle('dimmed', choice !== 'no');
+  }
+
   async function castVote(choice) {
-    if (busy) return;
+    if (busy || hasVoted) return;
     const name = getSavedName();
     if (!name) { showGate(); return; }
 
@@ -222,6 +249,7 @@
         throw new Error(body.detail || body.error || ('HTTP ' + res.status));
       }
       toast.textContent = choice === 'yes' ? 'Voted YES' : 'Voted NO';
+      lockVote(choice);
     } catch (e) {
       toast.textContent = 'Vote failed: ' + e.message;
     }
