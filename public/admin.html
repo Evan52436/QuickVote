@@ -211,6 +211,7 @@
 
   <div id="divider"></div>
   <div id="empty-note">Waiting for the first vote…</div>
+  <div id="err-banner" style="display:none;position:fixed;top:0;left:0;right:0;background:#000;color:#ffd60a;font-family:'JetBrains Mono',monospace;font-size:13px;text-align:center;padding:6px;z-index:50;"></div>
 
   <div id="topbar">
     <div id="live-tag"><span id="live-dot"></span>Live</div>
@@ -231,7 +232,10 @@
 
   async function fetchVotes() {
     const res = await fetch('/api/vote');
-    if (!res.ok) throw new Error('bad response');
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || body.error || ('HTTP ' + res.status));
+    }
     return res.json();
   }
 
@@ -257,8 +261,11 @@
     try {
       const { yes, no } = await fetchVotes();
       render(yes || 0, no || 0);
+      document.getElementById('err-banner').style.display = 'none';
     } catch (e) {
-      // silent fail on a projected screen; next tick will retry
+      const banner = document.getElementById('err-banner');
+      banner.textContent = 'Server error: ' + e.message;
+      banner.style.display = 'block';
     }
   }
 

@@ -56,14 +56,15 @@
     if (busy) return;
     busy = true;
     try {
-      await fetch('/api/vote', {
+      const res = await fetch('/api/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choice }),
       });
+      if (!res.ok) throw new Error('server rejected vote');
       toast.textContent = choice === 'yes' ? 'Voted YES' : 'Voted NO';
     } catch (e) {
-      toast.textContent = 'Could not reach server';
+      toast.textContent = 'Vote failed — try again';
     }
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 900);
