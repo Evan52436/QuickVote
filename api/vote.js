@@ -1,7 +1,9 @@
-import { redis } from '../lib/redis.js';
+import { getRedis } from '../lib/redis.js';
 
 export default async function handler(req, res) {
   try {
+    const redis = getRedis();
+
     if (req.method === 'GET') {
       const [yes, no] = await Promise.all([redis.get('votes:yes'), redis.get('votes:no')]);
       return res.status(200).json({ yes: Number(yes) || 0, no: Number(no) || 0 });
@@ -25,6 +27,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: `Method ${req.method} not allowed` });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Server error', detail: String(err) });
+    return res.status(500).json({ error: 'Server error', detail: String(err.message || err) });
   }
 }

@@ -61,10 +61,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choice }),
       });
-      if (!res.ok) throw new Error('server rejected vote');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || body.error || ('HTTP ' + res.status));
+      }
       toast.textContent = choice === 'yes' ? 'Voted YES' : 'Voted NO';
     } catch (e) {
-      toast.textContent = 'Vote failed — try again';
+      toast.textContent = 'Vote failed: ' + e.message;
     }
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 900);
